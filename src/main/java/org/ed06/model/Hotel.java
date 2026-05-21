@@ -25,13 +25,6 @@ public class Hotel {
         reservasPorHabitacion.put(habitacion.getNumero(), new ArrayList<>());
     }
 
-    public void registrarHabitaciones(List<String> tipos, List<Double> preciosBase) {
-        for(int i = 0; i < tipos.size(); i++) {
-            Habitacion habitacion = new Habitacion(habitaciones.size() + 1, tipos.get(i), preciosBase.get(i));
-            habitaciones.add(habitacion);
-            reservasPorHabitacion.put(habitacion.getNumero(), new ArrayList<>());
-        }
-    }
 
     public void listarHabitacionesDisponibles() {
         for(Habitacion habitacion : habitaciones) {
@@ -51,65 +44,79 @@ public class Hotel {
     }
 
     //Método para realizar una reserva.
-    // Comprueba si hay habitaciones disponibles, si existe el cliente y si las fechas son coherentes.
-    // Si encuentra una habitación disponible del tipo solicitado,
-    // crea una nueva reserva y la añade a la lista de reservas y devuelve el número de la habitación reservada.
-    // Antes de crear la reserva, comprueba si el cliente pasa a ser VIP tras la nueva reserva,
-    // en caso de que haya realizado más de 3 reservas en el último año.
+
     public int reservarHabitacion(int clienteId, String tipo, LocalDate fechaEntrada, LocalDate fechaSalida) {
         // Comprobamos si hay habitaciones en el hotel
-        if(!habitaciones.isEmpty()) {
+        if (habitaciones.isEmpty()) {
+            System.out.println("No hay habitaciones en el hotel");
+            return -4;
+        } else {
             //comprobamos si existe el cliente
-            if(this.clientes.get(clienteId) != null) {
+            if (this.clientes.get(clienteId) == null) {
+                System.out.println("No existe el cliente con id " + clienteId);
+                return -3;
+            } else {
                 Cliente cliente = this.clientes.get(clienteId);
                 // comprobamos si las fechas son coherentes
-                if(fechaEntrada.isBefore(fechaSalida)) {
-                    //buscamos una habitación disponible
-                    for(Habitacion habitacion : habitaciones) {
-                        if(habitacion.getTipo().equals(tipo.toUpperCase()) && habitacion.isDisponible()) {
-                            // Comprobamos si el cliente pasa a ser vip tras la nueva reserva
-                            int numReservas = 0;
-                            for (List<Reserva> reservasHabitacion : reservasPorHabitacion.values()) {
-                                for(Reserva reservaCliente : reservasHabitacion) {
-                                    if(reservaCliente.getCliente().equals(cliente)) {
-                                        if(reservaCliente.getFechaInicio().isAfter(LocalDate.now().minusYears(1))) {
-                                            numReservas++;
-                                        }
-                                    }
-                                }
-                            }
-                            if(numReservas > 3 && !cliente.esVip) {
-                                cliente.esVip = true;
-                                System.out.println("El cliente " + cliente.nombre + " ha pasado a ser VIP");
-                            }
-
-                            // Creamos la reserva
-                            Reserva reserva = new Reserva(reservasPorHabitacion.size() + 1, habitacion, cliente, fechaEntrada, fechaSalida);
-                            reservasPorHabitacion.get(habitacion.getNumero()).add(reserva);
-                            // Marcamos la habitación como no disponible
-                            habitacion.reservar();
-
-                            System.out.println("Reserva realizada con éxito");
-                            return habitacion.getNumero();
-                        }
-                    }
+                if (!fechaEntrada.isBefore(fechaSalida)) {
+                    System.out.println("La fecha de entrada es posterior a la fecha de salida");
+                    return -2;
+                } else {
+                    Integer habitacion = buscarHabitacionDisponible(tipo, fechaEntrada, fechaSalida, cliente);
+                    if (habitacion != null) return habitacion;
                     // si no hay habitaciones disponibles del tipo solicitado, mostramos un mensaje
                     System.out.println("No hay habitaciones disponibles del tipo " + tipo);
                     return -1;
-                } else {
-                    System.out.println("La fecha de entrada es posterior a la fecha de salida");
-                    return -2;
                 }
-            } else {
-                System.out.println("No existe el cliente con id " + clienteId);
-                return -3;
             }
-        } else {
-            System.out.println("No hay habitaciones en el hotel");
-            return -4;
         }
 
-        return 0;
+    }
+
+    private Integer buscarHabitacionDisponible(String tipo, LocalDate fechaEntrada, LocalDate fechaSalida, Cliente cliente) {
+        //buscamos una habitación disponible
+        for(Habitacion habitacion : habitaciones) {
+            if(habitacion.getTipo().equals(tipo.toUpperCase()) && habitacion.isDisponible()) {
+                // Comprobamos si el cliente pasa a ser vip tras la nueva reserva
+                int numReservas = 0;
+                numReservas = cantidadReservas(cliente, numReservas);
+                clienteEsVip(numReservas, cliente);
+
+                crearReserva(fechaEntrada, fechaSalida, habitacion, cliente);
+                // Marcamos la habitación como no disponible
+                habitacion.reservar();
+
+                System.out.println("Reserva realizada con éxito");
+                return habitacion.getNumero();
+            }
+        }
+        return null;
+    }
+
+    private int cantidadReservas(Cliente cliente, int numReservas) {
+        for (List<Reserva> reservasHabitacion : reservasPorHabitacion.values()) {
+            for(Reserva reservaCliente : reservasHabitacion) {
+                if(reservaCliente.getCliente().equals(cliente)) {
+                    if(reservaCliente.getFechaInicio().isAfter(LocalDate.now().minusYears(1))) {
+                        numReservas++;
+                    }
+                }
+            }
+        }
+        return numReservas;
+    }
+
+    private void crearReserva(LocalDate fechaEntrada, LocalDate fechaSalida, Habitacion habitacion, Cliente cliente) {
+        // Creamos la reserva
+        Reserva reserva = new Reserva(reservasPorHabitacion.size() + 1, habitacion, cliente, fechaEntrada, fechaSalida);
+        reservasPorHabitacion.get(habitacion.getNumero()).add(reserva);
+    }
+
+    private static void clienteEsVip(int numReservas, Cliente cliente) {
+        if(numReservas > 3 && !cliente.esVip) {
+            cliente.esVip = true;
+            System.out.println("El cliente " + cliente.nombre + " ha pasado a ser VIP");
+        }
     }
 
     public void listarReservas() {

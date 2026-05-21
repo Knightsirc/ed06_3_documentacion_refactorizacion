@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.Date;
 
 public class Reserva {
+    public static final double descuentoVip = 0.9;
+    public static final double descuentoSemanal = 0.95;
     private int id;
     private Habitacion habitacion;
     private Cliente cliente;
@@ -48,32 +50,24 @@ public class Reserva {
     // Devuelve precio total de la reserva
     public double calcularPrecioFinal() {
         //calculamos los días de la reserva
-        int n = fechaFin.getDayOfYear() - fechaInicio.getDayOfYear();
+        int numero = fechaFin.getDayOfYear() - fechaInicio.getDayOfYear();
         // Calculamos el precio base de la habitación por el número de noches de la reserva
-        double pb = habitacion.getPrecioBase() * n;
+        double precioBase = habitacion.getPrecioBase() * numero;
         // Declaramos la variable para almacenar el precio final
-        double pf = pb;
+        double precioFinal = precioBase;
 
         // Si el cliente es VIP, aplicamos un descuento del 10%
         if (cliente.esVip) {
-            pf *= 0.9;
+            precioFinal *= descuentoVip;
         }
 
         // Si el intervalo de fechas es mayor a 7 días, aplicamos un descuento adicional del 5%
-        if (n > 7) {
-            pf *= 0.95;
+        if (numero > 7) {
+            precioFinal *= descuentoSemanal;
         }
 
         // Devolvemos el precio final
-        return pf;
+        return precioFinal;
     }
 
-    public void mostrarReserva() {
-        System.out.println("Reserva #" + id);
-        System.out.println("Habitación #" + habitacion.getNumero() + " - Tipo: " + habitacion.getTipo() + " - Precio base: " + habitacion.getPrecioBase());
-        System.out.println("Cliente: " + cliente.nombre);
-        System.out.println("Fecha de inicio: " + fechaInicio.toString());
-        System.out.println("Fecha de fin: " + fechaFin.toString());
-        System.out.printf("Precio total: %.2f €\n", precioTotal);
-    }
 }
